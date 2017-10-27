@@ -1,0 +1,10 @@
+/target/
+*.class
+.classpath
+.project
+.settings/*
+/target/
+/catalina.base_IS_UNDEFINED/
+*.iml
+/target/
+
