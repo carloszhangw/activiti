@@ -30,5 +30,5 @@
 		<mvc:resources location="/WEB-INF/static/images/" mapping="/**/*.jpg"/>
 		
 		<bean class="com.workflow.start.StartupListener"/>
-
+		
 </beans>

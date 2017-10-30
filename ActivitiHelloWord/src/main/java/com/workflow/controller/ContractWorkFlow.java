@@ -5,11 +5,14 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
+import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.repository.ProcessDefinitionQuery;
 import org.activiti.engine.runtime.ProcessInstance;
@@ -17,12 +20,16 @@ import org.activiti.engine.task.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.workflow.dto.Login;
+import com.workflow.utils.Stage;
 
 
 /** * 
@@ -35,6 +42,7 @@ import com.alibaba.fastjson.JSONObject;
  * @return  */
 @Controller
 public class ContractWorkFlow {
+	
 	
 	private Logger LOGGER = LoggerFactory.getLogger(ContractWorkFlow.class);
 	@Resource
@@ -54,7 +62,7 @@ public class ContractWorkFlow {
 	  * @author: gaoLun
 	  * @date : 2017年10月24日 上午11:21:00
 	 */
-	@RequestMapping("/workflow/contract/deploy/list")
+	@RequestMapping(value="/workflow/contract/deploy/list",produces="text/html;charset=UTF-8")
 	@ResponseBody
 	public String queryDeployWorkFlowList(){
 		List<ProcessDefinition> ProcessDefinitionList = repositoryService.createProcessDefinitionQuery().list();
@@ -78,7 +86,7 @@ public class ContractWorkFlow {
 	  * @author: gaoLun
 	  * @date : 2017年10月27日 上午9:03:54
 	 */
-	@RequestMapping("/trial/flow/definetion/get")
+	@RequestMapping(value="/trial/flow/definetion/get",produces="text/html;charset=UTF-8")
 	@ResponseBody
 	public String getProcessDefinetionInfo(@RequestParam("deploymentId") String deploymentId){
 		JSONArray jsonArray = new JSONArray();
@@ -98,7 +106,7 @@ public class ContractWorkFlow {
 	}
 	/**
 	 * 
-	  * TODO 使用流程的key发布一个请假流程
+	  * TODO 启动一个流程
 	  * @Title: ContractWorkFlow.java 
 	  * @Package: com.workflow.controller 
 	  * @param userId  员工
@@ -107,17 +115,16 @@ public class ContractWorkFlow {
 	  * @author: gaoLun
 	  * @date : 2017年10月27日 下午2:11:17
 	 */
-	@RequestMapping("/trial/flow/contract/start")
+	@RequestMapping(value="/trial/flow/contract/start",produces="text/html;charset=UTF-8")
 	@ResponseBody
 	public String doStartProcessInstance(
 				@RequestParam("processKey") String processKey,
 				@RequestParam("userId") String userId,
 				@RequestParam("contractId") String contractId){
 		JSONObject object = new JSONObject();
-		Map<String, Object> variables = new HashMap<String, Object>(); 
-			variables.put("userId", userId);
-			variables.put("contractID", contractId);
-		ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(processKey,variables);
+		Map<String, Object> varibales = new HashMap<String, Object>();
+		varibales.put("userId", userId);
+		ProcessInstance processInstance = runtimeService.startProcessInstanceByKey(processKey,varibales);
         	object.put("id", processInstance.getId());
         	object.put("activitiId", processInstance.getActivityId());
         	object.put("businessKey", processInstance.getBusinessKey());
@@ -126,34 +133,37 @@ public class ContractWorkFlow {
 		return object.toJSONString();
 	}
 	/**
-	  * TODO 查询当前自己的任务
+	  * TODO 查询当前自己当前的任务
 	  * @Title: ContractWorkFlow.java 
 	  * @Package: com.workflow.controller 
 	  * @param userId 员工id
+	  * @param processKey 流程部署key
 	  * @return
 	  * @author: gaoLun
 	  * @date : 2017年10月27日 下午2:17:36
 	 */
-	@RequestMapping("/trial/flow/contract/tasks/query")
+	@RequestMapping(value="/trial/flow/contract/tasks/query",produces="text/html;charset=UTF-8")
 	@ResponseBody
-	public String queryTask(@RequestParam("userId") String userId){
-		JSONArray jsonArray = new JSONArray();
-		List<Task> tasks = taskService.createTaskQuery().taskAssignee(userId).list();
-		for(Task task: tasks){
-			JSONObject object = new JSONObject();
-			object.put("taskId", task.getId());
-			object.put("name", task.getName());
-			object.put("assignee", task.getAssignee());
-			object.put("createTime", task.getCreateTime().toString());
-				Map<String,Object> variables =  task.getProcessVariables();
-			object.put("variables", variables);
-			jsonArray.add(object);
+	public String queryTask(@RequestParam("userId") String userId ,@RequestParam("processKey") String processKey){
+		JSONObject object = new JSONObject();
+		/**
+		 * 当前流程的任务
+		 */
+		Task task = taskService.createTaskQuery().taskAssignee(userId).singleResult();
+		if(null == task){
+			return object.toJSONString();
 		}
-		return jsonArray.toJSONString();
+		object.put("taskId", task.getId());
+		object.put("name", task.getName());
+		object.put("assignee", task.getAssignee());
+		object.put("createTime", task.getCreateTime().toString());
+			Map<String,Object> variables = taskService.getVariables(task.getId());
+		object.put("variables", variables);
+		return object.toJSONString();
 	}
 	/**
 	 * 
-	  * TODO 查询自己完成的任务
+	  * TODO 查询自己的历史任务
 	  * @Title: ContractWorkFlow.java 
 	  * @Package: com.workflow.controller 
 	  * @param userId
@@ -161,19 +171,30 @@ public class ContractWorkFlow {
 	  * @author: gaoLun
 	  * @date : 2017年10月27日 下午6:21:50
 	 */
-	@RequestMapping("/trial/flow/contract/tasks/success/query")
+	@RequestMapping(value="/trial/flow/contract/tasks/history/query",produces="text/html;charset=UTF-8")
 	@ResponseBody
-	public String querySuccessTask(@RequestParam("userId") String userId){
+	public String querySuccessTask(@RequestParam("userId") String userId , @RequestParam("processKey") String processKey){
 		JSONArray jsonArray = new JSONArray();
-		List<Task> tasks = taskService.createTaskQuery().taskAssignee(userId).list();
-		for(Task task: tasks){
+		List<HistoricTaskInstance> HistoricTaskInstances = 
+					processEngine.getHistoryService().createHistoricTaskInstanceQuery().taskAssignee(userId).list();
+		for(HistoricTaskInstance task: HistoricTaskInstances){
 			JSONObject object = new JSONObject();
 			object.put("taskId", task.getId());
 			object.put("name", task.getName());
 			object.put("assignee", task.getAssignee());
 			object.put("createTime", task.getCreateTime().toString());
-				Map<String,Object> variables =  task.getProcessVariables();
+				Map<String,Object> variables =  task.getTaskLocalVariables();
 			object.put("variables", variables);
+			String taskDefinitionKey = task.getTaskDefinitionKey();
+			String status = "";
+			if(taskDefinitionKey.equals(Stage.EMPLOYEE_LEAVE.getName())){
+				status = "发起审批阶段";
+			}else if(taskDefinitionKey.equals(Stage.MANAGER_LEAVE.getName())){
+				status = "经理审批阶段";
+			}else if(taskDefinitionKey.equals(Stage.END_EVENT.getName())){
+				status = "结束";
+			}
+			object.put("status", status);
 			jsonArray.add(object);
 		}
 		return jsonArray.toJSONString();
@@ -187,7 +208,7 @@ public class ContractWorkFlow {
 	  * @author: gaoLun
 	  * @date : 2017年10月27日 下午6:20:48
 	 */
-	@RequestMapping("/trial/flow/contract/tasks/complete")
+	@RequestMapping(value="/trial/flow/contract/tasks/complete",produces="text/html;charset=UTF-8")
 	@ResponseBody
 	public String completeTask(@RequestParam("taskId") String taskId){
 		JSONObject object = new JSONObject();
@@ -203,6 +224,22 @@ public class ContractWorkFlow {
 		object.put("msg", "ok");
 		return object.toJSONString();
 	}
-	
-	
+	/**
+	  * TODO 登录
+	  * @Title: ContractWorkFlow.java 
+	  * @Package: com.workflow.controller 
+	  * @param login
+	  * @return
+	  * @author: gaoLun
+	  * @date : 2017年10月30日 下午3:59:21
+	 */
+	@RequestMapping(value="/trial/flow/login",method=RequestMethod.POST,produces="text/html;charset=UTF-8")
+	@ResponseBody
+	public String login(@ModelAttribute Login login,HttpServletRequest request,HttpServletResponse response){
+		JSONObject object = new JSONObject();
+		object.put("data", login.getLoginName());
+		object.put("code", 200);
+		object.put("msg", "ok");
+		return object.toJSONString();
+	}
 }

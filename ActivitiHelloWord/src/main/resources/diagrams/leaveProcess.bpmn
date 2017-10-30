@@ -4,7 +4,7 @@
     <startEvent id="startEventId" name="Start"></startEvent>
     <userTask id="employeeLeave" name="员工申请离职" activiti:assignee="${userId}"></userTask>
     <sequenceFlow id="flow1" sourceRef="startEventId" targetRef="employeeLeave"></sequenceFlow>
-    <userTask id="managerLeave" name="经理同意员工离职" activiti:assignee="高仑"></userTask>
+    <userTask id="managerLeave" name="经理同意员工离职" activiti:assignee="200"></userTask>
     <sequenceFlow id="flow2" sourceRef="employeeLeave" targetRef="managerLeave"></sequenceFlow>
     <endEvent id="endEvent" name="流程结束"></endEvent>
     <sequenceFlow id="flow5" sourceRef="managerLeave" targetRef="endEvent"></sequenceFlow>

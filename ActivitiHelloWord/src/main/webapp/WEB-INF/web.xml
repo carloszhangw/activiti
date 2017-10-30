@@ -35,7 +35,7 @@
     </servlet-mapping>  
     <!-- 一缕转换为UTF-8编码 -->  
     <filter>  
-        <filter-name>itxxzEncoding</filter-name>  
+        <filter-name>characterEncodingFilter</filter-name>  
         <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>  
         <init-param>  
             <param-name>encoding</param-name>  
