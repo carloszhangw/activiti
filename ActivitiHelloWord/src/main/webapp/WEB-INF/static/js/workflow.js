@@ -62,6 +62,7 @@ function login(){
         		$("#loginContrainer").siblings("div").show();
         		$("#loginContrainer").find("div").eq(0).hide();
         		alert("登录成功");
+        		window.location.href="http://localhost:8080/ActivitiHelloWord/page/workflow.html";
         	}else{
         		alert("登录失败");
         	}
