@@ -120,11 +120,13 @@
 	    <artifactId>fastjson</artifactId>
 	    <version>1.2.31</version>
 	</dependency>
-
 	
-	
-	
-    
+	<dependency>  
+        <groupId>commons-fileupload</groupId>  
+        <artifactId>commons-fileupload</artifactId>  
+        <version>1.3.1</version>  
+    </dependency>  
+		
   </dependencies>
 	 <build>
 	    <plugins>

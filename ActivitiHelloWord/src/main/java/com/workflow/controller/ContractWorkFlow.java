@@ -1,5 +1,9 @@
 package com.workflow.controller;
 
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +57,24 @@ public class ContractWorkFlow {
 	private RuntimeService runtimeService;
 	@Resource
 	private TaskService taskService;
+	/**
+	  * TODO 登录
+	  * @Title: ContractWorkFlow.java 
+	  * @Package: com.workflow.controller 
+	  * @param login
+	  * @return
+	  * @author: gaoLun
+	  * @date : 2017年10月30日 下午3:59:21
+	 */
+	@RequestMapping(value="/trial/flow/login",method=RequestMethod.POST,produces="text/html;charset=UTF-8")
+	@ResponseBody
+	public String login(@ModelAttribute Login login,HttpServletRequest request,HttpServletResponse response){
+		JSONObject object = new JSONObject();
+		object.put("data", login.getLoginName());
+		object.put("code", 200);
+		object.put("msg", "ok");
+		return object.toJSONString();
+	}
 	/**
 	 * 
 	  * TODO 已部署流程列表
@@ -144,7 +166,7 @@ public class ContractWorkFlow {
 	 */
 	@RequestMapping(value="/trial/flow/contract/tasks/query",produces="text/html;charset=UTF-8")
 	@ResponseBody
-	public String queryTask(@RequestParam("userId") String userId ,@RequestParam("processKey") String processKey){
+	public String queryCurrentTask(@RequestParam("userId") String userId ,@RequestParam("processKey") String processKey){
 		JSONObject object = new JSONObject();
 		/**
 		 * 当前流程的任务
@@ -173,10 +195,10 @@ public class ContractWorkFlow {
 	 */
 	@RequestMapping(value="/trial/flow/contract/tasks/history/query",produces="text/html;charset=UTF-8")
 	@ResponseBody
-	public String querySuccessTask(@RequestParam("userId") String userId , @RequestParam("processKey") String processKey){
+	public String queryHistoryTask(@RequestParam("userId") String userId , @RequestParam("processKey") String processKey){
 		JSONArray jsonArray = new JSONArray();
 		List<HistoricTaskInstance> HistoricTaskInstances = 
-					processEngine.getHistoryService().createHistoricTaskInstanceQuery().taskAssignee(userId).list();
+					processEngine.getHistoryService().createHistoricTaskInstanceQuery().taskAssignee(userId).processDefinitionKey(processKey).list();
 		for(HistoricTaskInstance task: HistoricTaskInstances){
 			JSONObject object = new JSONObject();
 			object.put("taskId", task.getId());
@@ -225,21 +247,110 @@ public class ContractWorkFlow {
 		return object.toJSONString();
 	}
 	/**
-	  * TODO 登录
+	 * 
+	  * TODO 未完成任务
 	  * @Title: ContractWorkFlow.java 
 	  * @Package: com.workflow.controller 
-	  * @param login
+	  * @param userId
+	  * @param processKey
 	  * @return
 	  * @author: gaoLun
-	  * @date : 2017年10月30日 下午3:59:21
+	  * @date : 2017年10月31日 下午2:55:45
 	 */
-	@RequestMapping(value="/trial/flow/login",method=RequestMethod.POST,produces="text/html;charset=UTF-8")
+	@RequestMapping(value="/trial/flow/contract/tasks/unfinished/query",produces="text/html;charset=UTF-8")
 	@ResponseBody
-	public String login(@ModelAttribute Login login,HttpServletRequest request,HttpServletResponse response){
-		JSONObject object = new JSONObject();
-		object.put("data", login.getLoginName());
-		object.put("code", 200);
-		object.put("msg", "ok");
-		return object.toJSONString();
+	public String queryUnfinishedTask(@RequestParam("userId") String userId , @RequestParam("processKey") String processKey){
+		JSONArray jsonArray = new JSONArray();
+		List<HistoricTaskInstance> HistoricTaskInstances =  
+				processEngine.getHistoryService().createHistoricTaskInstanceQuery().taskAssignee(userId).processDefinitionKey(processKey).unfinished().list();
+		for(HistoricTaskInstance task: HistoricTaskInstances){
+			JSONObject object = new JSONObject();
+			object.put("taskId", task.getId());
+			object.put("name", task.getName());
+			object.put("assignee", task.getAssignee());
+			object.put("createTime", task.getCreateTime().toString());
+				Map<String,Object> variables =  task.getTaskLocalVariables();
+			object.put("variables", variables);
+			String taskDefinitionKey = task.getTaskDefinitionKey();
+			String status = "";
+			if(taskDefinitionKey.equals(Stage.EMPLOYEE_LEAVE.getName())){
+				status = "发起审批阶段";
+			}else if(taskDefinitionKey.equals(Stage.MANAGER_LEAVE.getName())){
+				status = "经理审批阶段";
+			}else if(taskDefinitionKey.equals(Stage.END_EVENT.getName())){
+				status = "结束";
+			}
+			object.put("status", status);
+			jsonArray.add(object);
+		}
+		return jsonArray.toJSONString();
+	}
+	/**
+	 * 
+	  * TODO 已完成任务
+	  * @Title: ContractWorkFlow.java 
+	  * @Package: com.workflow.controller 
+	  * @param userId
+	  * @param processKey
+	  * @return
+	  * @author: gaoLun
+	  * @date : 2017年10月31日 下午3:32:17
+	 */
+	@RequestMapping(value="/trial/flow/contract/tasks/finished/query",produces="text/html;charset=UTF-8")
+	@ResponseBody
+	public String queryFinishedTask(@RequestParam("userId") String userId , @RequestParam("processKey") String processKey){
+		JSONArray jsonArray = new JSONArray();
+		List<HistoricTaskInstance> HistoricTaskInstances =  
+				processEngine.getHistoryService().createHistoricTaskInstanceQuery().taskAssignee(userId).processDefinitionKey(processKey).finished().list();
+		for(HistoricTaskInstance task: HistoricTaskInstances){
+			JSONObject object = new JSONObject();
+			object.put("taskId", task.getId());
+			object.put("name", task.getName());
+			object.put("assignee", task.getAssignee());
+			object.put("createTime", task.getCreateTime().toString());
+				Map<String,Object> variables =  task.getTaskLocalVariables();
+			object.put("variables", variables);
+			String taskDefinitionKey = task.getTaskDefinitionKey();
+			String status = "";
+			if(taskDefinitionKey.equals(Stage.EMPLOYEE_LEAVE.getName())){
+				status = "发起审批阶段";
+			}else if(taskDefinitionKey.equals(Stage.MANAGER_LEAVE.getName())){
+				status = "经理审批阶段";
+			}else if(taskDefinitionKey.equals(Stage.END_EVENT.getName())){
+				status = "结束";
+			}
+			object.put("status", status);
+			jsonArray.add(object);
+		}
+		return jsonArray.toJSONString();
+	}
+	/**
+	 * 
+	  * TODO 查看流程图
+	  * @Title: ContractWorkFlow.java 
+	  * @Package: com.workflow.controller 
+	  * @param response
+	  * @throws IOException
+	  * @author: gaoLun
+	  * @date : 2017年10月31日 下午4:13:48
+	 */
+	@RequestMapping(value="/trial/flow/contract/tasks/leaveprocess")
+	public void viewWorkFlowPic( @RequestParam("processKey") String processKey,HttpServletResponse response) throws IOException{
+		 FileInputStream in;  
+         response.setContentType("application/octet-stream;charset=UTF-8");  
+         try {
+            in=new FileInputStream("E:\\diagrams\\leaveProcess.leave_process.png"); 
+            int i=in.available();  
+            byte[]data=new byte[i];  
+            in.read(data);  
+            in.close();  
+            //写图片  
+            OutputStream outputStream=new BufferedOutputStream(response.getOutputStream());  
+            outputStream.write(data);  
+            outputStream.flush();  
+            outputStream.close();  
+        } catch (Exception e) {
+            e.printStackTrace();  
+        }  
 	}
 }

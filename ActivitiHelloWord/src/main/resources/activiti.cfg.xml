@@ -15,7 +15,7 @@
 				    
    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" destroy-method="close"> 
    		<property name="driverClassName" value="com.mysql.jdbc.Driver"></property>
-		<property name="url" value="jdbc:mysql://xxxx:3306/activiti"></property>
+		<property name="url" value="jdbc:mysql://localhost:3306/activiti?useUnicode=true&amp;characterEncoding=UTF-8"></property>
 		<property name="username" value="test"></property>
 		<property name="password" value="test"></property>
    </bean>
@@ -31,7 +31,9 @@
      <property name="dataSource" ref="dataSource" />  
      <property name="transactionManager" ref="transactionManager" />  
      <property name="databaseSchemaUpdate" value="true" />  
-     <property name="jobExecutorActivate" value="false" />  
+     <property name="jobExecutorActivate" value="false" /> 
+     <property name="activityFontName" value="宋体"/>
+     <property name="labelFontName" value="宋体"/>
    </bean>  
   
   
@@ -42,8 +44,6 @@
    <bean id="taskService" factory-bean="processEngine" factory-method="getTaskService"/>
    <bean id="historyService" factory-bean="processEngine" factory-method="getHistoryService"/>
    <bean id="managementService" factory-bean="processEngine" factory-method="getManagementService"/>
-  
-  
   <!-- 开启自动扫描 -->  
   <context:annotation-config/>  
 </beans>

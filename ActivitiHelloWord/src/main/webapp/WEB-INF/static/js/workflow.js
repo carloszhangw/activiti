@@ -158,20 +158,20 @@ function getDefinetion(definetionId){
 
 
 /**
- * 获取自己的任务列表
+ * 获取自己当前任务
  */
-function queryMyTasksList(){
+function queryMyCurrentTasksList(){
 	if("" == _userId){
 		alert("请登录");
 		return;
 	}
-	$("#myTaskListContrainer").show();
+	$("#myCurrentTaskListContrainer").show();
 	$.ajax({
 	        type: "GET",
 	        url: "/ActivitiHelloWord/trial/flow/contract/tasks/query?userId="+_userId+"&processKey=leave_process",
 	        dataType: "json",
 	        success: function(data) {
-	        	var tbody = $("#myTaskListContrainer tbody").eq(0);
+	        	var tbody = $("#myCurrentTaskListContrainer tbody").eq(0);
 	        	$(tbody).html("");
 	        	var item = data;
 	        	var taskId = item.taskId;
@@ -212,18 +212,21 @@ function completeEvent(taskId){
         }
 	});
 }
+/**
+ * 获取历史记录
+ */
 function queryMyHistoryTasksList(){
 	if("" == _userId){
 		alert("请登录");
 		return;
 	}
-	$("#successTaskListContrainer").show();
+	$("#myHistoryTaskListContrainer").show();
 	$.ajax({
 	        type: "GET",
 	        url: "/ActivitiHelloWord/trial/flow/contract/tasks/history/query?userId="+_userId+"&processKey=leave_process",
 	        dataType: "json",
 	        success: function(data) {
-	        	var tbody = $("#successTaskListContrainer tbody").eq(0);
+	        	var tbody = $("#myHistoryTaskListContrainer tbody").eq(0);
 	        	$(tbody).html("");
 	        	$.each(data,function(index,item){
 	        		var taskId = item.taskId;
@@ -238,4 +241,67 @@ function queryMyHistoryTasksList(){
 	           	console.log(data);
 	        }
 	 });
+}
+/**
+ * 获取未完成的任务
+ */
+function queryMyUnfinishedTaskList(){
+	if("" == _userId){
+		alert("请登录");
+		return;
+	}
+	$("#myUnfinishedTasksListContrainer").show();
+	$.ajax({
+	        type: "GET",
+	        url: "/ActivitiHelloWord/trial/flow/contract/tasks/unfinished/query?userId="+_userId+"&processKey=leave_process",
+	        dataType: "json",
+	        success: function(data) {
+	        	var tbody = $("#myUnfinishedTasksListContrainer tbody").eq(0);
+	        	$(tbody).html("");
+	        	$.each(data,function(index,item){
+	        		var taskId = item.taskId;
+	        		var name = item.name;
+	        		var assignee = item.assignee;
+	        		var status = item.status;
+	        		var node ="<tr><td>"+taskId+"</td><td>"+name+"</td><td>"+assignee+"</td><td>"+status+"</td></tr>";
+	        		$(tbody).append(node);
+	        	});
+	        },
+	        error: function(data) {
+	           	console.log(data);
+	        }
+	 });
+}
+/**
+ * 获取已完成任务列表
+ */
+function queryMyFinishedTaskList(){
+	if("" == _userId){
+		alert("请登录");
+		return;
+	}
+	$("#myFinishedTasksListContrainer").show();
+	$.ajax({
+	        type: "GET",
+	        url: "/ActivitiHelloWord/trial/flow/contract/tasks/finished/query?userId="+_userId+"&processKey=leave_process",
+	        dataType: "json",
+	        success: function(data) {
+	        	var tbody = $("#myFinishedTasksListContrainer tbody").eq(0);
+	        	$(tbody).html("");
+	        	$.each(data,function(index,item){
+	        		var taskId = item.taskId;
+	        		var name = item.name;
+	        		var assignee = item.assignee;
+	        		var status = item.status;
+	        		var node ="<tr><td>"+taskId+"</td><td>"+name+"</td><td>"+assignee+"</td><td>"+status+"</td></tr>";
+	        		$(tbody).append(node);
+	        	});
+	        },
+	        error: function(data) {
+	           	console.log(data);
+	        }
+	 });
+}
+function queryWorkFlowPic(){
+	$("#workFlowPicContrainer").show();
 }
