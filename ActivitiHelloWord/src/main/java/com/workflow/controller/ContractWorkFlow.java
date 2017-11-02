@@ -17,6 +17,7 @@ import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
 import org.activiti.engine.history.HistoricTaskInstance;
+import org.activiti.engine.history.HistoricVariableInstance;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.engine.repository.ProcessDefinitionQuery;
 import org.activiti.engine.runtime.ProcessInstance;
@@ -152,6 +153,16 @@ public class ContractWorkFlow {
         	object.put("businessKey", processInstance.getBusinessKey());
         	object.put("deploymentId", processInstance.getDeploymentId());
         	object.put("processVariables", processInstance.getProcessVariables());
+        /**
+         * 获取当前任务
+         * 设置参数
+         */
+        Task task = taskService.createTaskQuery().taskAssignee(userId).singleResult();
+        if(null != task){
+        	taskService.setVariableLocal(task.getId(), "userId", userId);
+        	taskService.setVariableLocal(task.getId(), "contractId", contractId);
+        	taskService.setVariableLocal(task.getId(), "processKey", processKey);
+        }
 		return object.toJSONString();
 	}
 	/**
@@ -179,8 +190,10 @@ public class ContractWorkFlow {
 		object.put("name", task.getName());
 		object.put("assignee", task.getAssignee());
 		object.put("createTime", task.getCreateTime().toString());
-			Map<String,Object> variables = taskService.getVariables(task.getId());
-		object.put("variables", variables);
+		Map<String,Object> varables = new HashMap<String, Object>();
+			varables.put("userId", taskService.getVariable(task.getId(), "userId"));
+			varables.put("contractId", taskService.getVariable(task.getId(), "contractId"));
+		object.put("variables", varables);
 		return object.toJSONString();
 	}
 	/**
@@ -235,6 +248,12 @@ public class ContractWorkFlow {
 	public String completeTask(@RequestParam("taskId") String taskId){
 		JSONObject object = new JSONObject();
 		try {
+			Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+			if(null != task){
+	        	taskService.setVariableLocal(task.getId(), "userId", "xxx");
+	        	taskService.setVariableLocal(task.getId(), "contractId", "ppp");
+	        	taskService.setVariableLocal(task.getId(), "processKey", "ccc");
+	        }
 			taskService.complete(taskId);
 		} catch (Exception e) {
 			LOGGER.info("--- complete --- :" + e.getMessage());
@@ -281,6 +300,23 @@ public class ContractWorkFlow {
 				status = "结束";
 			}
 			object.put("status", status);
+			/**
+			 * 当前任务历史变量
+			 */
+			JSONArray historyVariables = new JSONArray();
+			List<HistoricVariableInstance> historicVariableInstances = processEngine.getHistoryService().createHistoricVariableInstanceQuery().taskId(task.getId()).list();
+			for(HistoricVariableInstance historicVariableInstance : historicVariableInstances){
+				JSONObject variablesObj = new JSONObject();
+				LOGGER.info("---- 当前历史任务流程变量 start --- ");
+				variablesObj.put("id : ", historicVariableInstance.getId());
+				variablesObj.put("processInstanceId : ", historicVariableInstance.getProcessInstanceId());
+				variablesObj.put("vriableName : " , historicVariableInstance.getVariableName());
+				variablesObj.put("variableTypeName : " , historicVariableInstance.getVariableTypeName());
+				variablesObj.put("variableValue : ", historicVariableInstance.getValue());
+				variablesObj.put("taskId", historicVariableInstance.getTaskId()+",mmm");
+				historyVariables.add(variablesObj);
+			}
+			object.put("variables", historyVariables);
 			jsonArray.add(object);
 		}
 		return jsonArray.toJSONString();
@@ -306,10 +342,9 @@ public class ContractWorkFlow {
 			JSONObject object = new JSONObject();
 			object.put("taskId", task.getId());
 			object.put("name", task.getName());
+			object.put("processInstanceId", task.getProcessInstanceId());
 			object.put("assignee", task.getAssignee());
 			object.put("createTime", task.getCreateTime().toString());
-				Map<String,Object> variables =  task.getTaskLocalVariables();
-			object.put("variables", variables);
 			String taskDefinitionKey = task.getTaskDefinitionKey();
 			String status = "";
 			if(taskDefinitionKey.equals(Stage.EMPLOYEE_LEAVE.getName())){
@@ -320,6 +355,23 @@ public class ContractWorkFlow {
 				status = "结束";
 			}
 			object.put("status", status);
+			/**
+			 * 当前任务历史变量
+			 */
+			JSONArray historyVariables = new JSONArray();
+			List<HistoricVariableInstance> historicVariableInstances = processEngine.getHistoryService().createHistoricVariableInstanceQuery().taskId(task.getId()).list();
+			for(HistoricVariableInstance historicVariableInstance : historicVariableInstances){
+				JSONObject variablesObj = new JSONObject();
+				LOGGER.info("---- 当前历史任务流程变量 start --- ");
+				variablesObj.put("id : ", historicVariableInstance.getId());
+				variablesObj.put("processInstanceId : ", historicVariableInstance.getProcessInstanceId());
+				variablesObj.put("vriableName : " , historicVariableInstance.getVariableName());
+				variablesObj.put("variableTypeName : " , historicVariableInstance.getVariableTypeName());
+				variablesObj.put("variableValue : ", historicVariableInstance.getValue());
+				variablesObj.put("taskId", historicVariableInstance.getTaskId()+",mmm");
+				historyVariables.add(variablesObj);
+			}
+			object.put("variables", historyVariables);
 			jsonArray.add(object);
 		}
 		return jsonArray.toJSONString();
@@ -336,7 +388,7 @@ public class ContractWorkFlow {
 	 */
 	@RequestMapping(value="/trial/flow/contract/tasks/leaveprocess")
 	public void viewWorkFlowPic( @RequestParam("processKey") String processKey,HttpServletResponse response) throws IOException{
-		 FileInputStream in;  
+		 FileInputStream in;
          response.setContentType("application/octet-stream;charset=UTF-8");  
          try {
             in=new FileInputStream("E:\\diagrams\\leaveProcess.leave_process.png"); 

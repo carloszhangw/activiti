@@ -115,7 +115,7 @@ function start(deploymentId){
         url: "/ActivitiHelloWord/trial/flow/contract/start?processKey=leave_process&userId="+_userId+"&contractId=001",
         dataType: "json",
         success: function(data) {
-        	alert("发布成功");
+        	alert("processInstanceId:"+data.id+",processKey:leave_process,userId:"+_userId);
         },
         error: function(data) {
         	alert("发布失败");
